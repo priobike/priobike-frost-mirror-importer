@@ -1,0 +1,38 @@
+version: '3'
+
+services:
+  web:
+    image: fraunhoferiosb/frost-server-http:2.0.10
+    env_file:
+      - dev.frost.env
+    ports:
+      - 8080:8080
+      - 1883:1883
+    depends_on:
+      - database
+    networks:
+      - frost_network
+
+  database:
+    image: postgis/postgis:14-3.2-alpine
+    env_file:
+      - dev.frost.env
+    volumes:
+      - postgis_volume:/var/lib/postgresql/data
+    networks:
+      - frost_network
+
+  importer:
+    build: .
+    networks:
+      - frost_network
+    env_file:
+      - .env
+    depends_on:
+      - web
+
+volumes:
+  postgis_volume:
+
+networks:
+  frost_network:
