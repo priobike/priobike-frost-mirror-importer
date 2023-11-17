@@ -1,14 +1,18 @@
 package main
 
 import (
+	"importer/filter"
 	"importer/frost"
 	"importer/things"
 )
 
 func main() {
-	// Sync the things.
+	// Sync the things
 	things.SyncThings()
 
-	// Sync the frost data.
+	// Filter things
+	filter.FilterThings()
+
+	// Sync the frost data
 	frost.Sync()
 }

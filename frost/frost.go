@@ -3,91 +3,98 @@ package frost
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"importer/env"
 	"importer/log"
 	"importer/things"
 	"io"
 	"net/http"
-	"net/url"
 	"strconv"
-	"sync"
-	"time"
+	"strings"
 )
 
-func pruneThingsPage(client *http.Client, page int) (more bool) {
-	elementsPerPage := 100
-	pageUrl := env.SensorThingsProxyBaseUrl + "Things?" + url.QueryEscape(
-		"$skip="+fmt.Sprintf("%d", page*elementsPerPage),
-	)
-
-	resp, err := client.Get(pageUrl)
-	if err != nil {
-		log.Warning.Println("Could not prune things:", err)
-		panic(err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Warning.Println("Could not prune things:", err)
-		panic(err)
-	}
-
-	var thingsResponse struct {
-		Value   []things.Thing `json:"value"`
-		NextUri *string        `json:"@iot.nextLink"`
-	}
-
-	if err := json.Unmarshal(body, &thingsResponse); err != nil {
-		log.Warning.Println("Could not prune things:", err)
-		panic(err)
-	}
-
-	for _, t := range thingsResponse.Value {
-		// Add the thing to the things map.
-		req, err := http.NewRequest(http.MethodDelete, env.SensorThingsProxyBaseUrl+"Things("+strconv.Itoa(t.IotId)+")", nil)
-		if err != nil {
-			panic(err)
-		}
-
-		_, err = client.Do(req)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	return thingsResponse.NextUri != nil
-}
-
-func pruneOldData() {
+func pruneOldData(client *http.Client) {
 	log.Info.Println("Pruning things...")
 
-	// Fetch all pages of the SensorThings query.
-	var page = 0
+	// Fetches pages and deletes things until no things are left
 	for {
-		// Make some parallel requests to speed things up.
-		var wg sync.WaitGroup
-		var foundMore = false
-		for i := 0; i < 10; i++ {
-			wg.Add(1)
-			go func(page int) {
-				defer wg.Done()
-				more := pruneThingsPage(&http.Client{Timeout: time.Duration(10) * time.Second}, page)
-				if more {
-					foundMore = true
-				}
-			}(page)
-			page++
+		pageUrl := env.SensorThingsProxyBaseUrl + "Things?"
+
+		resp, err := client.Get(pageUrl)
+		if err != nil {
+			log.Warning.Println("Could not prune things:", err)
+			panic(err)
 		}
-		log.Info.Printf("Bulk pruning things from pages %d-%d...", page-10, page-1)
-		wg.Wait()
-		if !foundMore {
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Warning.Println("Could not prune things:", err)
+			panic(err)
+		}
+
+		var thingsResponse struct {
+			Value   []things.Thing `json:"value"`
+			NextUri *string        `json:"@iot.nextLink"`
+		}
+
+		if err := json.Unmarshal(body, &thingsResponse); err != nil {
+			log.Warning.Println("Could not prune things:", err)
+			panic(err)
+		}
+
+		log.Info.Printf("Pruning %d things...", len(thingsResponse.Value))
+
+		// Break if all things are deleted
+		if len(thingsResponse.Value) == 0 {
 			break
 		}
+
+		// Delete things
+		for _, t := range thingsResponse.Value {
+			req, err := http.NewRequest(http.MethodDelete, env.SensorThingsProxyBaseUrl+"Things("+strconv.Itoa(t.IotId)+")", nil)
+			if err != nil {
+				panic(err)
+			}
+
+			resp, err := client.Do(req)
+			if err != nil {
+				panic(err)
+			}
+
+			// Panic if not 200.
+			if !strings.Contains(resp.Status, "200") {
+				panic(resp.Status)
+			}
+		}
+
 	}
 
 	log.Info.Println("Pruned things.")
+}
+
+func importThing(client *http.Client, thing things.Thing) {
+
+	body, err := json.Marshal(thing)
+	if err != nil {
+		panic(err)
+	}
+
+	bodyReader := bytes.NewReader(body)
+
+	req, err := http.NewRequest(http.MethodPost, env.SensorThingsProxyBaseUrl+"Things", bodyReader)
+	if err != nil {
+		panic(err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+
+	// Panic if not 201
+	if !strings.Contains(resp.Status, "201") {
+		panic(resp.Status)
+	}
 }
 
 func importNewData(client *http.Client) {
@@ -100,38 +107,21 @@ func importNewData(client *http.Client) {
 		return true
 	})
 
-	// for _, thing := range thingsList {
-	thing := thingsList[0]
-	
-	body, err := json.Marshal(thing)
-	if err != nil {
-		panic(err)
+	log.Info.Printf("Things list len: %d", len(thingsList))
+
+	// Import all Things in Frost Server.
+	for _, thing := range thingsList {
+		importThing(client, thing)
 	}
-
-	fmt.Println(string(body))
-
-	bodyReader := bytes.NewReader(body)
-
-	req, err := http.NewRequest(http.MethodPost, env.SensorThingsProxyBaseUrl+"Things", bodyReader)
-	if err != nil {
-		panic(err)
-	}
-
-	_, err = client.Do(req)
-	if err != nil {
-		panic(err)
-	}
-
-	log.Info.Println("Thing " + strconv.Itoa(thing.IotId) + " imported.")
-	// }
 
 	log.Info.Println("Imported things.")
 }
 
+// Executes the sync
 func Sync() {
 	client := &http.Client{}
 
-	pruneOldData()
+	pruneOldData(client)
 
 	importNewData(client)
 }

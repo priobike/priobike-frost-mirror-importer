@@ -8,12 +8,14 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 )
 
 // A map that contains all things by their name.
 var Things = &sync.Map{}
 
+// Syncs things from specific pages
 func syncThingsPage(page int) (more bool) {
 	elementsPerPage := 100
 	pageUrl := env.SensorThingsBaseUrl + "Things?" + url.QueryEscape(
@@ -24,11 +26,6 @@ func syncThingsPage(page int) (more bool) {
 			"  or Datastreams/properties/layerName eq 'cycle_second' "+
 			"  or Datastreams/properties/layerName eq 'detector_car' "+
 			"  or Datastreams/properties/layerName eq 'detector_bike') "+
-			"and (properties/laneType eq 'Radfahrer' "+
-			"  or properties/laneType eq 'KFZ/Radfahrer' "+
-			"  or properties/laneType eq 'Fußgänger/Radfahrer' "+
-			"  or properties/laneType eq 'Bus/Radfahrer' "+
-			"  or properties/laneType eq 'KFZ/Bus/Radfahrer')"+
 			"&$expand=Datastreams,Locations"+
 			"&$skip="+fmt.Sprintf("%d", page*elementsPerPage),
 	)
@@ -39,6 +36,11 @@ func syncThingsPage(page int) (more bool) {
 		panic(err)
 	}
 	defer resp.Body.Close()
+
+	// Panic if not 200.
+	if !strings.Contains(resp.Status, "200") {
+		panic(resp.Status)
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

@@ -1,0 +1,208 @@
+{
+    "@iot.id": 659,
+    "name": "438_15",
+    "description": "Connection of lanes subject to the individual signal heads",
+    "properties": {
+        "laneType": "KFZ",
+        "trafficLightsId": "438"
+    },
+    "Datastreams": [
+        {
+            "@iot.id": 14154,
+            "name": "Signal change request - car at 438_15_2",
+            "description": "Datastream to broadcast the lane connection's detector occupation level value",
+            "observationType": "http://www.opengis.net/def/ogc-om/OM_Measurement",
+            "unitOfMeasurement": {
+                "name": " percent",
+                "symbol": "%",
+                "definition": "https://ucum.org/ucum.html#para-29"
+            },
+            "ObservedProperty": {
+                "name": "",
+                "definition": "",
+                "description": ""
+            },
+            "properties": {
+                "layerName": "detector_car"
+            }
+        },
+        {
+            "@iot.id": 6616,
+            "name": "Signal change request - car at 438_15_1",
+            "description": "Datastream to broadcast the lane connection's detector occupation level value",
+            "observationType": "http://www.opengis.net/def/ogc-om/OM_Measurement",
+            "unitOfMeasurement": {
+                "name": " percent",
+                "symbol": "%",
+                "definition": "https://ucum.org/ucum.html#para-29"
+            },
+            "ObservedProperty": {
+                "name": "",
+                "definition": "",
+                "description": ""
+            },
+            "properties": {
+                "layerName": "detector_car"
+            }
+        },
+        {
+            "@iot.id": 3383,
+            "name": "Cycle second at 438_15",
+            "description": "Current second in the traffic signal cycle",
+            "observationType": "http://www.opengis.net/def/ogc-om/OM_TemporalObservation ",
+            "unitOfMeasurement": {
+                "name": "Second",
+                "symbol": "s",
+                "definition": "https://ucum.org/ucum.html#para-28"
+            },
+            "ObservedProperty": {
+                "name": "",
+                "definition": "",
+                "description": ""
+            },
+            "properties": {
+                "layerName": "cycle_second"
+            }
+        },
+        {
+            "@iot.id": 13964,
+            "name": "Primary signal heads at 438_15",
+            "description": "Datastream to broadcast the lane connection's signal value of a signal group",
+            "observationType": "http://www.opengis.net/def/ogc-om/OM_CategoryObservation",
+            "unitOfMeasurement": {
+                "name": "Signal Status ",
+                "symbol": "[0-6,9]",
+                "definition": "0=dark,1=red,2=amber,3=green,4=red-amber,5=amber-flashing,6=green-flashing,9=unknown"
+            },
+            "ObservedProperty": {
+                "name": "",
+                "definition": "",
+                "description": ""
+            },
+            "properties": {
+                "layerName": "primary_signal"
+            }
+        },
+        {
+            "@iot.id": 1173,
+            "name": "Signal program ID at 438_15",
+            "description": "A unique ID (name) of the current signal program of the traffic light. It is not the control program",
+            "observationType": "http://www.opengis.net/def/ogc-om/OM_CategoryObservation",
+            "unitOfMeasurement": {
+                "name": "Signal program ID",
+                "symbol": "[0-9]+",
+                "definition": "morgen, mittag, ..."
+            },
+            "ObservedProperty": {
+                "name": "",
+                "definition": "",
+                "description": ""
+            },
+            "properties": {
+                "layerName": "signal_program"
+            }
+        }
+    ],
+    "Locations": [
+        {
+            "description": "The given geometry composed out of ingress lane, egress lane and the real route represents the location of the lane connection.",
+            "encodingType": "application/vnd.geo+json",
+            "@iot.id": 659,
+            "name": "438_15",
+            "location": {
+                "type": "Feature",
+                "geometry": {
+                    "type": "MultiLineString",
+                    "coordinates": [
+                        [
+                            [
+                                9.7959267,
+                                53.5803646
+                            ],
+                            [
+                                9.7957729,
+                                53.5803845
+                            ],
+                            [
+                                9.7952083,
+                                53.5804577
+                            ],
+                            [
+                                9.7947839,
+                                53.5804998
+                            ],
+                            [
+                                9.7942765,
+                                53.5805358
+                            ],
+                            [
+                                9.7936651,
+                                53.5805467
+                            ],
+                            [
+                                9.7923845,
+                                53.5805557
+                            ],
+                            [
+                                9.7905297,
+                                53.5805635
+                            ],
+                            [
+                                9.7896945,
+                                53.5805661
+                            ],
+                            [
+                                9.7891603,
+                                53.5805628
+                            ],
+                            [
+                                9.7882115,
+                                53.5805525
+                            ]
+                        ],
+                        [
+                            [
+                                9.7957742,
+                                53.5803843
+                            ],
+                            [
+                                9.7961643,
+                                53.5803337
+                            ],
+                            [
+                                9.7961643,
+                                53.5803337
+                            ],
+                            [
+                                9.7966396,
+                                53.580279
+                            ],
+                            [
+                                9.7966396,
+                                53.580279
+                            ],
+                            [
+                                9.7970692,
+                                53.5802255
+                            ]
+                        ],
+                        [
+                            [
+                                9.7968762,
+                                53.5802495
+                            ],
+                            [
+                                9.7970691,
+                                53.5802255
+                            ],
+                            [
+                                9.7972814,
+                                53.5802004
+                            ]
+                        ]
+                    ]
+                }
+            }
+        }
+    ]
+}
