@@ -121,7 +121,8 @@ func importNewData(client *http.Client) {
 func Sync() {
 	client := &http.Client{}
 
-	pruneOldData(client)
+	// Currently not used
+	// pruneOldData(client)
 
 	importNewData(client)
 }
