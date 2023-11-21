@@ -1,114 +1,41 @@
-FROM golang:alpine as builder
+FROM fraunhoferiosb/frost-server-http:latest
 
-WORKDIR /app
+ENV POSTGRES_USER=postgres
+ENV POSTGRES_NAME=frost-db
+ENV POSTGRES_PASSWORD=frost-password
+ENV POSTGRES_DB=frost-db
+ENV POSTGRES_HOST=localhost
+ENV POSTGRES_PORT=5432
 
-COPY . .
-RUN go mod download
-RUN go build -o main .
+ENV FROST_SERVICE_ROOT_URL=http://localhost:8080/FROST-Server
+ENV FROST_HTTP_CORS_ENABLE=true
+ENV FROST_HTTP_CORS_ALLOWED_ORIGINS=*
+ENV FROST_PERSISTENCE_DB_DRIVER=org.postgresql.Driver
+ENV FROST_PERSISTENCE_DB_URL=jdbc:postgresql://localhost:5432/frost-db
+ENV FROST_PERSISTENCE_DB_USERNAME=postgres
+ENV FROST_PERSISTENCE_DB_PASSWORD=frost-password
+ENV FROST_PERSISTENCE_AUTO_UPDATE_DATABASE=true
 
-ARG POSTGRES_DB=sensorthings
-ARG POSTGRES_USER=sensorthings
-ARG POSTGRES_PASSWORD=ChangeMe
+# Change user to root
+USER root
 
-ENV POSTGRES_DB=${POSTGRES_DB}
-ENV POSTGRES_USER={POSTGRES_USER}
-ENV POSTGRES_PASSWORD={POSTGRES_PASSWORD}
+# Must happen before installing PostGIS
+RUN useradd -ms /bin/bash postgres
 
-ENV serviceRootUrl=http://localhost:8080/FROST-Server
-ENV plugins_multiDatastream.enable=false
-ENV http_cors_enable=true
-ENV http_cors_allowed_origins=*
-ENV persistence_db_driver=org.postgresql.Driver
-ENV persistence_db_url=jdbc:postgresql://localhost:5432/sensorthings
-ENV persistence_db_username=sensorthings
-ENV persistence_db_password=ChangeMe
-ENV persistence_autoUpdateDatabase=true
-ENV persistence_idGenerationMode=ServerAndClientGenerated
- 
-ENV defaultCount=false
-ENV defaultTop=100
- 
-ENV useAbsoluteNavigationLinks=true
-ENV countMode=FULL
-ENV extension_customLinks=true
-ENV extension_customLinks_recurseDepth=0
-ENV extension_filterDelete_enable=false
-ENV plugins_odata_enable=false
-ENV plugins_openApi_enable=true
-ENV resources_requests_cpu=300m
-ENV resources_requests_memory=900Mi
-ENV resources_limits_cpu=300m
-ENV resources_limits_memory=900Mi
- 
-ENV db_autoUpdate=true
-ENV alwaysOrderbyId=false
-ENV db_maximumConnection=10
-ENV db_maximumIdleConnection=10
-ENV db_minimumIdleConnection=10
+# Install PostGIS
+# See: https://trac.osgeo.org/postgis/wiki/UsersWikiPostGIS3UbuntuPGSQLApt
+RUN apt update -y
+RUN apt install -y postgresql-14-postgis-3 postgresql-client
 
-FROM tomcat:9-jdk17 AS runner
+COPY --chown=postgres:postgres init-db.sh /postgres/init-db.sh
 
-RUN apt-get update && apt-get install -y \
-  binutils \
-  libproj-dev \
-  gdal-bin
+# TODO: Remove this mock
+COPY demoEntities.json /root/demoEntities.json
 
-# Install Postgres client to check liveness of the database
-RUN apt-get install -y postgresql-client
+COPY preheat.sh /root/preheat.sh
+COPY run.sh /root/run.sh
 
-# Install postgres dev utils
-RUN apt-get install -y libpq-dev
+# Run preheating
+RUN /root/preheat.sh
 
-# Install postgis
-RUN apt-get install -y postgresql-14-postgis-3
-
-RUN apt-get -y install systemctl
-
-RUN apt-get install -y sudo
-
-RUN service postgresql start
-
-RUN echo "listen_addresses = '*'" >> /etc/postgresql/14/main/postgresql.conf
-
-# Connect to the default PostgreSQL template database
-RUN sudo -u postgres psql template1
-
-RUN ALTER USER {POSTGRES_USER} with password {POSTGRES_PASSWORD};
-
-RUN exit
-
-RUN systemctl restart postgresql.service
-
-# Install CURL for healthcheck
-RUN apt-get install -y curl
-
-# Copy go script
-COPY --from=builder /app/main .
-
-# Install wget
-RUN apt-get install -y wget
-
-# Setup JAVA_HOME -- useful for docker commandline
-# ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64/
-# RUN export JAVA_HOME
-
-RUN wget https://repo1.maven.org/maven2/de/fraunhofer/iosb/ilt/FROST-Server/FROST-Server.HTTP/2.0.10/FROST-Server.HTTP-2.0.10.war
-
-RUN apt-get update && apt-get install unzip && apt-get clean
-
-# Copy to images tomcat path
-RUN unzip -d ${CATALINA_HOME}/webapps/FROST-Server FROST-Server.HTTP-2.0.10.war \
-    && addgroup --system --gid 1000 tomcat \
-    && adduser --system --uid 1000 --gid 1000 tomcat \
-    && chgrp -R 0 $CATALINA_HOME \
-    && chmod -R g=u $CATALINA_HOME
-
-USER tomcat
-
-# Expose the default Tomcat port
-EXPOSE 8080
-
-# Start Tomcat when the container starts
-CMD ["catalina.sh", "run"]
-
-# TODO import data
+CMD ["/root/run.sh"]
