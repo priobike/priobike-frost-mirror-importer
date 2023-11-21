@@ -1,0 +1,88 @@
+FROM fraunhoferiosb/frost-server-http:2.0.10
+
+USER root
+
+ARG POSTGRES_DB=sensorthings
+ARG POSTGRES_USER=sensorthings
+ARG POSTGRES_PASSWORD=ChangeMe
+
+ENV POSTGRES_DB=${POSTGRES_DB}
+ENV POSTGRES_USER={POSTGRES_USER}
+ENV POSTGRES_PASSWORD={POSTGRES_PASSWORD}
+
+RUN apt-get update && apt-get install -y \
+  binutils \
+  libproj-dev \
+  gdal-bin
+
+# Install Postgres client to check liveness of the database
+RUN apt-get install -y postgresql-client
+
+# Install postgres dev utils
+RUN apt-get install -y libpq-dev
+
+# Install postgis
+RUN apt-get install -y postgresql-14-postgis-3
+
+RUN apt-get -y install systemctl
+
+RUN apt-get install -y sudo
+
+RUN systemctl start postgresql
+
+# Create postgis extension
+RUN psql -c "CREATE EXTENSION postgis;"
+
+ENV serviceRootUrl=http://localhost:8080/FROST-Server
+ENV plugins_multiDatastream.enable=false
+ENV http_cors_enable=true
+ENV http_cors_allowed_origins=*
+ENV persistence_db_driver=org.postgresql.Driver
+ENV persistence_db_url=jdbc:postgresql://localhost:5432/sensorthings
+ENV persistence_db_username=sensorthings
+ENV persistence_db_password=ChangeMe
+ENV persistence_autoUpdateDatabase=true
+ENV persistence_idGenerationMode=ServerAndClientGenerated
+ 
+ENV defaultCount=false
+ENV defaultTop=100
+ 
+ENV useAbsoluteNavigationLinks=true
+ENV countMode=FULL
+ENV extension_customLinks=true
+ENV extension_customLinks_recurseDepth=0
+ENV extension_filterDelete_enable=false
+ENV plugins_odata_enable=false
+ENV plugins_openApi_enable=true
+ENV resources_requests_cpu=300m
+ENV resources_requests_memory=900Mi
+ENV resources_limits_cpu=300m
+ENV resources_limits_memory=900Mi
+ 
+ENV db_autoUpdate=true
+ENV alwaysOrderbyId=false
+ENV db_maximumConnection=10
+ENV db_maximumIdleConnection=10
+ENV db_minimumIdleConnection=10
+
+# USER root
+
+# RUN apt-get update && apt-get install -y \
+#   binutils \
+#   libproj-dev \
+#   gdal-bin
+
+# # Install Postgres client to check liveness of the database
+# RUN apt-get install -y postgresql-client
+
+# # Install postgres dev utils
+# RUN apt-get install -y libpq-dev
+
+# # Install postgis
+# RUN apt-get install -y postgresql-14-postgis-3
+
+# RUN apt-get -y install systemctl
+
+# RUN apt-get install -y sudo
+
+# RUN service postgresql start
