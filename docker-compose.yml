@@ -4,7 +4,10 @@ services:
   web:
     build: .
     environment:
+      # In production this will be something like 
+      # https://priobike.vkw.tu-dresden.de/production/priobike-frost-mirror
       - serviceRootUrl=http://localhost:8080/FROST-Server
+      
       - http_cors_enable=true
       - http_cors_allowed.origins=*
       - persistence_db_driver=org.postgresql.Driver

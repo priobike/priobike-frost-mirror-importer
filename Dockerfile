@@ -1,5 +1,6 @@
 FROM fraunhoferiosb/frost-server-http:latest
 
+# Env for database
 ENV POSTGRES_USER=postgres
 ENV POSTGRES_NAME=frost-db
 ENV POSTGRES_PASSWORD=frost-password
@@ -7,6 +8,8 @@ ENV POSTGRES_DB=frost-db
 ENV POSTGRES_HOST=localhost
 ENV POSTGRES_PORT=5432
 
+# Env for the FROST server
+# During the preheating, the FROST server is only running on localhost
 ENV FROST_SERVICE_ROOT_URL=http://localhost:8080/FROST-Server
 ENV FROST_HTTP_CORS_ENABLE=true
 ENV FROST_HTTP_CORS_ALLOWED_ORIGINS=*
@@ -15,6 +18,12 @@ ENV FROST_PERSISTENCE_DB_URL=jdbc:postgresql://localhost:5432/frost-db
 ENV FROST_PERSISTENCE_DB_USERNAME=postgres
 ENV FROST_PERSISTENCE_DB_PASSWORD=frost-password
 ENV FROST_PERSISTENCE_AUTO_UPDATE_DATABASE=true
+
+# Env for the sync script
+ENV FROST_HAMBURG_URL=https://tld.iot.hamburg.de/v1.1/
+# During the preheating, the FROST server is only running on localhost
+ENV FROST_PROXY_URL=http://localhost:8080/FROST-Server/v1.1/
+ENV EXCLUDE_LIST_FILE=/root/Fehleranalyse_PrioBike_für_TUD.xlsx
 
 # Change user to root
 USER root
@@ -29,11 +38,15 @@ RUN apt install -y postgresql-14-postgis-3 postgresql-client
 
 COPY --chown=postgres:postgres init-db.sh /postgres/init-db.sh
 
-# TODO: Remove this mock
-COPY demoEntities.json /root/demoEntities.json
-
 COPY preheat.sh /root/preheat.sh
 COPY run.sh /root/run.sh
+
+# Install python3 and pip and the required packages
+RUN apt-get install -y python3 python3-pip
+COPY requirements.txt /root/requirements.txt
+RUN python3 -m pip install -r /root/requirements.txt
+COPY sync.py /root/sync.py
+COPY Fehleranalyse_PrioBike_für_TUD.xlsx /root/Fehleranalyse_PrioBike_für_TUD.xlsx
 
 # Run preheating
 RUN /root/preheat.sh

@@ -19,6 +19,5 @@ catalina.sh run &
 # TODO: Properly wait for the FROST server to start, but 10 seconds is enough for now
 sleep 10
 
-# TODO: Write actual entities into the database
-curl -X GET http://localhost:8080/FROST-Server/v1.1/Things
-curl -X POST -H "Content-Type: application/json" -d @/root/demoEntities.json http://localhost:8080/FROST-Server/v1.1/Things
+# Download, filter and push things from remote FROST server to local FROST server
+python3 /root/sync.py
