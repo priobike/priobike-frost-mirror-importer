@@ -64,8 +64,9 @@ prefixes_to_exclude = set() # YYY for nodes, YYY_XXX for connections
 for index, row in df.iterrows():
     # Find all numbers in the column "betroffene connection" using a regex
     connections = re.findall(r'\d+', str(row['betroffene connections']))
+    connection_ranges = re.findall(r'\d+-\d+', str(row['betroffene connections']))
     node_id = str(int(row['Knoten'])) # Make sure the node ID is an integer
-    if len(connections) == 0:
+    if len(connections) == 0 and len(connection_ranges) == 0:
         # Complete node
         prefixes_to_exclude.add(node_id)
     else:
@@ -73,6 +74,16 @@ for index, row in df.iterrows():
         for connection in connections:
             connection_id = str(int(connection)) # Make sure the connection ID is an integer
             prefixes_to_exclude.add(node_id + '_' + connection_id)
+        
+        # Add all connection ranges to the set
+        for connection_range in connection_ranges:
+            connection_range_split = connection_range.split("-")
+            if len(connection_range_split) == 2:
+                from_id = int(connection_range_split[0])
+                to_id = int(connection_range_split[1])
+                for id in range(from_id, to_id - 1):
+                    prefixes_to_exclude.add(node_id + '_' + str(id))
+            
 # Filter out things that need to be excluded
 things_to_keep = []
 for thing in things:

@@ -17,5 +17,3 @@ services:
       - persistence_autoUpdateDatabase=true
     ports:
       - 8080:8080
-volumes:
-    postgis_volume:

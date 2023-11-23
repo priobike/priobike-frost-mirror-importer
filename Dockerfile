@@ -23,7 +23,7 @@ ENV FROST_PERSISTENCE_AUTO_UPDATE_DATABASE=true
 ENV FROST_HAMBURG_URL=https://tld.iot.hamburg.de/v1.1/
 # During the preheating, the FROST server is only running on localhost
 ENV FROST_PROXY_URL=http://localhost:8080/FROST-Server/v1.1/
-ENV EXCLUDE_LIST_FILE=/root/Fehleranalyse_PrioBike_für_TUD.xlsx
+ENV EXCLUDE_LIST_FILE=/root/exclude_list.xlsx
 
 # Change user to root
 USER root
@@ -46,7 +46,7 @@ RUN apt-get install -y python3 python3-pip
 COPY requirements.txt /root/requirements.txt
 RUN python3 -m pip install -r /root/requirements.txt
 COPY sync.py /root/sync.py
-COPY Fehleranalyse_PrioBike_für_TUD.xlsx /root/Fehleranalyse_PrioBike_für_TUD.xlsx
+COPY exclude_list.xlsx /root/exclude_list.xlsx
 
 # Run preheating
 RUN /root/preheat.sh
