@@ -102,7 +102,7 @@ for thing in things_to_keep:
     def remove_fields(obj):
         if isinstance(obj, dict):
             for key in list(obj.keys()):
-                if '@' in key:
+                if '@' in key and '@iot.id' not in key:
                     del obj[key]
                 else:
                     remove_fields(obj[key])

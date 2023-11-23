@@ -15,5 +15,6 @@ services:
       - persistence_db_username=postgres
       - persistence_db_password=frost-password
       - persistence_autoUpdateDatabase=true
+      - persistence_idGenerationMode=ServerAndClientGenerated
     ports:
       - 8080:8080

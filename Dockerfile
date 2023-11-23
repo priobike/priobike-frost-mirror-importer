@@ -18,6 +18,7 @@ ENV FROST_PERSISTENCE_DB_URL=jdbc:postgresql://localhost:5432/frost-db
 ENV FROST_PERSISTENCE_DB_USERNAME=postgres
 ENV FROST_PERSISTENCE_DB_PASSWORD=frost-password
 ENV FROST_PERSISTENCE_AUTO_UPDATE_DATABASE=true
+ENV FROST_PERSISTENCE_IDGENERATIONMODE=ServerAndClientGenerated
 
 # Env for the sync script
 ENV FROST_HAMBURG_URL=https://tld.iot.hamburg.de/v1.1/
