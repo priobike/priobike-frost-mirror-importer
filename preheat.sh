@@ -14,6 +14,7 @@ persistence_db_url=${FROST_PERSISTENCE_DB_URL} \
 persistence_db_username=${FROST_PERSISTENCE_DB_USERNAME} \
 persistence_db_password=${FROST_PERSISTENCE_DB_PASSWORD} \
 persistence_autoUpdateDatabase=${FROST_PERSISTENCE_AUTO_UPDATE_DATABASE} \
+persistence_idGenerationMode=${FROST_PERSISTENCE_IDGENERATIONMODE} \
 catalina.sh run &
 
 # TODO: Properly wait for the FROST server to start, but 10 seconds is enough for now
