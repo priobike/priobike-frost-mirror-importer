@@ -72,7 +72,7 @@ for index, row in df.iterrows():
     node_id = str(int(row['Knoten'])) # Make sure the node ID is an integer
     if len(connections) == 0 and len(connection_ranges) == 0:
         # Complete node
-        prefixes_to_exclude.add(node_id)
+        prefixes_to_exclude.add(node_id + "_")
     else:
         # Add all connections to the set
         for connection in connections:
@@ -92,11 +92,11 @@ for index, row in df.iterrows():
 excluded_vrs = [15, 18, 24]
 df2 = pd.read_excel(VR_LIST_FILE)
 for index, row in df2.iterrows():
-    
+
     # Filter only relevant vrs
     if row['VR'] in excluded_vrs:
         # Add the complete node to the exclude list
-        prefixes_to_exclude.add(str(row["LSA"]))
+        prefixes_to_exclude.add(str(row["LSA"]) + "_")
 
             
 # Filter out things that need to be excluded
