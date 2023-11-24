@@ -25,6 +25,7 @@ ENV FROST_HAMBURG_URL=https://tld.iot.hamburg.de/v1.1/
 # During the preheating, the FROST server is only running on localhost
 ENV FROST_PROXY_URL=http://localhost:8080/FROST-Server/v1.1/
 ENV EXCLUDE_LIST_FILE=/root/exclude_list.xlsx
+ENV VR_LIST_FILE=/root/vr_list.xlsx
 
 # Change user to root
 USER root
@@ -48,6 +49,7 @@ COPY requirements.txt /root/requirements.txt
 RUN python3 -m pip install -r /root/requirements.txt
 COPY sync.py /root/sync.py
 COPY exclude_list.xlsx /root/exclude_list.xlsx
+COPY vr_list.xlsx /root/vr_list.xlsx
 
 # Run preheating
 RUN /root/preheat.sh

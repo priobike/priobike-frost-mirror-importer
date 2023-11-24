@@ -27,6 +27,8 @@ if not FROST_PROXY_URL.endswith('/'):
     raise Exception('FROST_PROXY_URL must end with a slash')
 
 EXCLUDE_LIST_FILE = os.environ['EXCLUDE_LIST_FILE']
+VR_LIST_FILE = os.environ['VR_LIST_FILE']
+
 if not EXCLUDE_LIST_FILE:
     raise Exception('Missing environment variable EXCLUDE_LIST_FILE')
 
@@ -59,7 +61,9 @@ while True:
     page += 1
 
 # Step 2: Find which traffic lights need to be excluded
+# Filter by exclude list
 df = pd.read_excel(EXCLUDE_LIST_FILE)
+
 prefixes_to_exclude = set() # YYY for nodes, YYY_XXX for connections
 for index, row in df.iterrows():
     # Find all numbers in the column "betroffene connection" using a regex
@@ -83,6 +87,17 @@ for index, row in df.iterrows():
                 to_id = int(connection_range_split[1])
                 for id in range(from_id, to_id - 1):
                     prefixes_to_exclude.add(node_id + '_' + str(id))
+
+# Filter by VR list and exclude 15, 18, 24
+excluded_vrs = [15, 18, 24]
+df2 = pd.read_excel(VR_LIST_FILE)
+for index, row in df2.iterrows():
+    
+    # Filter only relevant vrs
+    if row['VR'] in excluded_vrs:
+        # Add the complete node to the exclude list
+        prefixes_to_exclude.add(str(row["LSA"]))
+
             
 # Filter out things that need to be excluded
 things_to_keep = []
