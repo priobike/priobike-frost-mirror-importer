@@ -64,7 +64,8 @@ while True:
 # Filter by exclude list
 df = pd.read_excel(EXCLUDE_LIST_FILE)
 
-prefixes_to_exclude = set() # YYY for nodes, YYY_XXX for connections
+node_prefixes_to_exclude = set() # YYY_ for nodes
+connections_to_exclude = set() # YYY_XXX for connections (exact)
 for index, row in df.iterrows():
     # Find all numbers in the column "betroffene connection" using a regex
     connections = re.findall(r'\d+', str(row['betroffene connections']))
@@ -72,12 +73,12 @@ for index, row in df.iterrows():
     node_id = str(int(row['Knoten'])) # Make sure the node ID is an integer
     if len(connections) == 0 and len(connection_ranges) == 0:
         # Complete node
-        prefixes_to_exclude.add(node_id + "_")
+        node_prefixes_to_exclude.add(node_id + "_")
     else:
         # Add all connections to the set
         for connection in connections:
             connection_id = str(int(connection)) # Make sure the connection ID is an integer
-            prefixes_to_exclude.add(node_id + '_' + connection_id)
+            connections_to_exclude.add(node_id + '_' + connection_id)
         
         # Add all connection ranges to the set
         for connection_range in connection_ranges:
@@ -86,7 +87,7 @@ for index, row in df.iterrows():
                 from_id = int(connection_range_split[0])
                 to_id = int(connection_range_split[1])
                 for id in range(from_id, to_id - 1):
-                    prefixes_to_exclude.add(node_id + '_' + str(id))
+                    connections_to_exclude.add(node_id + '_' + str(id))
 
 # Filter by VR list and exclude 15, 18, 24
 excluded_vrs = [15, 18, 24]
@@ -96,18 +97,21 @@ for index, row in df2.iterrows():
     # Filter only relevant vrs
     if row['VR'] in excluded_vrs:
         # Add the complete node to the exclude list
-        prefixes_to_exclude.add(str(row["LSA"]) + "_")
-
+        node_prefixes_to_exclude.add(str(row["LSA"]) + "_")
             
 # Filter out things that need to be excluded
 things_to_keep = []
 for thing in things:
     thing_name = thing['name'] # This is the connection id YYY_XXX
-    for prefix in prefixes_to_exclude:
+    for prefix in node_prefixes_to_exclude:
         if thing_name.startswith(prefix):
             break
     else:
-        things_to_keep.append(thing)
+        for connection in connections_to_exclude:
+            if thing_name == connection:
+                break
+        else:
+            things_to_keep.append(thing)
 
 print(f'Keeping {len(things_to_keep)} traffic lights of {len(things)}')
 # Step 3: Send the traffic lights to our proxy server
