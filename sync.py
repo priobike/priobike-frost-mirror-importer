@@ -89,8 +89,8 @@ for index, row in df.iterrows():
                 for id in range(from_id, to_id - 1):
                     connections_to_exclude.add(node_id + '_' + str(id))
 
-# Filter by VR list and exclude 15, 18, 24
-excluded_vrs = [15, 18, 24]
+# Filter by VR list and exclude (currently no VRs should be excluded)
+excluded_vrs = []
 df2 = pd.read_excel(VR_LIST_FILE)
 for index, row in df2.iterrows():
 
