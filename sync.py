@@ -11,7 +11,6 @@ import json
 import os
 import re
 
-import pandas as pd
 import requests
 
 # Format: https://tld.iot.hamburg.de/v1.1/
@@ -26,93 +25,92 @@ if not FROST_HAMBURG_URL.endswith('/'):
 if not FROST_PROXY_URL.endswith('/'):
     raise Exception('FROST_PROXY_URL must end with a slash')
 
-EXCLUDE_LIST_FILE = os.environ['EXCLUDE_LIST_FILE']
-VR_LIST_FILE = os.environ['VR_LIST_FILE']
+# Skip this step when there is a things file 
+# (will be clean in the Container build)
+# to accelerate development
+if os.path.exists('things.json'):
+    with open('things.json') as f:
+        things = json.loads(f.read())
+else:
+    # Step 1: Fetch all things
+    elements_per_page = 100
+    page = 0
+    things = []
+    while True:
+        page_url = FROST_HAMBURG_URL + "Things?" + \
+            "$filter=Datastreams/properties/serviceName eq 'HH_STA_traffic_lights' " + \
+            "and (Datastreams/properties/layerName eq 'primary_signal' " + \
+            "  or Datastreams/properties/layerName eq 'signal_program' " + \
+            "  or Datastreams/properties/layerName eq 'cycle_second' " + \
+            "  or Datastreams/properties/layerName eq 'detector_car' " + \
+            "  or Datastreams/properties/layerName eq 'detector_bike') " + \
+            "&$expand=Datastreams($expand=ObservedProperty,Sensor),Locations" + \
+            "&$skip=" + str(page * elements_per_page)
 
-if not EXCLUDE_LIST_FILE:
-    raise Exception('Missing environment variable EXCLUDE_LIST_FILE')
-
-# Step 1: Fetch all things
-elements_per_page = 100
-page = 0
-things = []
-while True:
-    page_url = FROST_HAMBURG_URL + "Things?" + \
-        "$filter=Datastreams/properties/serviceName eq 'HH_STA_traffic_lights' " + \
-        "and (Datastreams/properties/layerName eq 'primary_signal' " + \
-        "  or Datastreams/properties/layerName eq 'signal_program' " + \
-        "  or Datastreams/properties/layerName eq 'cycle_second' " + \
-        "  or Datastreams/properties/layerName eq 'detector_car' " + \
-        "  or Datastreams/properties/layerName eq 'detector_bike') " + \
-        "&$expand=Datastreams($expand=ObservedProperty,Sensor),Locations" + \
-        "&$skip=" + str(page * elements_per_page)
-
-    print(f'Downloading page {page} from {page_url}')
-    response = requests.get(page_url)
-    response.raise_for_status()
-    response_json = response.json()
-    if 'value' not in response_json:
-        raise Exception('Missing value in response')
-    if len(response_json['value']) == 0:
-        print('Finished downloading all traffic lights')
-        break
-    for traffic_light in response_json['value']:
-        things.append(traffic_light)
-    page += 1
-
-# Step 2: Find which traffic lights need to be excluded
-# Filter by exclude list
-df = pd.read_excel(EXCLUDE_LIST_FILE)
-
-node_prefixes_to_exclude = set() # YYY_ for nodes
-connections_to_exclude = set() # YYY_XXX for connections (exact)
-for index, row in df.iterrows():
-    # Find all numbers in the column "betroffene connection" using a regex
-    connections = re.findall(r'\d+', str(row['betroffene connections']))
-    connection_ranges = re.findall(r'\d+-\d+', str(row['betroffene connections']))
-    node_id = str(int(row['Knoten'])) # Make sure the node ID is an integer
-    if len(connections) == 0 and len(connection_ranges) == 0:
-        # Complete node
-        node_prefixes_to_exclude.add(node_id + "_")
-    else:
-        # Add all connections to the set
-        for connection in connections:
-            connection_id = str(int(connection)) # Make sure the connection ID is an integer
-            connections_to_exclude.add(node_id + '_' + connection_id)
-        
-        # Add all connection ranges to the set
-        for connection_range in connection_ranges:
-            connection_range_split = connection_range.split("-")
-            if len(connection_range_split) == 2:
-                from_id = int(connection_range_split[0])
-                to_id = int(connection_range_split[1])
-                for id in range(from_id, to_id - 1):
-                    connections_to_exclude.add(node_id + '_' + str(id))
-
-# Filter by VR list and exclude (currently no VRs should be excluded)
-excluded_vrs = []
-df2 = pd.read_excel(VR_LIST_FILE)
-for index, row in df2.iterrows():
-
-    # Filter only relevant vrs
-    if row['VR'] in excluded_vrs:
-        # Add the complete node to the exclude list
-        node_prefixes_to_exclude.add(str(row["LSA"]) + "_")
-            
-# Filter out things that need to be excluded
-things_to_keep = []
-for thing in things:
-    thing_name = thing['name'] # This is the connection id YYY_XXX
-    for prefix in node_prefixes_to_exclude:
-        if thing_name.startswith(prefix):
+        print(f'Downloading page {page} from {page_url}')
+        response = requests.get(page_url)
+        response.raise_for_status()
+        response_json = response.json()
+        if 'value' not in response_json:
+            raise Exception('Missing value in response')
+        if len(response_json['value']) == 0:
+            print('Finished downloading all traffic lights')
             break
-    else:
-        for connection in connections_to_exclude:
-            if thing_name == connection:
-                break
-        else:
-            things_to_keep.append(thing)
+        for traffic_light in response_json['value']:
+            things.append(traffic_light)
+        page += 1
+    with open('things.json', 'w') as f:
+        f.write(json.dumps(things))
 
+frost_connections = set([thing['name'] for thing in things])
+print(f'Found {len(frost_connections)} connections in FROST server.')
+
+# Step 2: Filter out traffic lights that aren't provided by the MAP portal
+# https://daten-hamburg.de/tlf_public/
+
+maps = []
+# Load the exclude list
+index_page = requests.get('https://daten-hamburg.de/tlf_public/')
+index_page.raise_for_status()
+index_page = index_page.text
+xml_links = re.findall(r'<a href="(.+\.xml)">', index_page)
+for i, xml_link in enumerate(xml_links):
+    # Check if we already have the file
+    if os.path.exists('maps/' + xml_link):
+        with open('maps/' + xml_link) as f:
+            maps.append(f.read())
+        continue
+
+    print(f'Downloading xml file {i + 1}/{len(xml_links)}: {xml_link}')
+    
+    # Download the xml file
+    xml = requests.get('https://daten-hamburg.de/tlf_public/' + xml_link)
+    xml.raise_for_status()
+    xml = xml.text
+    # Write to dir, create folder if necessary
+    if not os.path.exists('maps'):
+        os.makedirs('maps')
+    with open('maps/' + xml_link, 'w') as f:
+        f.write(xml)
+    maps.append(xml)
+        
+map_connections = set()
+for xml in maps:
+    # Find all strings in <name></name> tags
+    names = re.findall(r'<name>(.+)</name>', xml)
+    assert len(names) > 0, 'No names found in xml file'
+    assert len(names) == 1, 'Multiple names found in xml file'
+    # Parse the node id from the name (works for HH... and MAP_ITS... files)
+    node_ids = re.findall(r'\d+', names[0])
+    node_id = node_ids[1]
+    # Find all <laneID></laneID> numbers
+    lane_ids = re.findall(r'<laneID>(\d+)</laneID>', xml)
+    map_connections.update([f"{node_id}_{lane_id}" for lane_id in lane_ids])
+
+print(f'Found {len(map_connections)} connections in MAP portal.')
+
+# Step 3: Push the traffic lights to our proxy server
+things_to_keep = [thing for thing in things if thing['name'] in map_connections]
 print(f'Keeping {len(things_to_keep)} traffic lights of {len(things)}')
 # Step 3: Send the traffic lights to our proxy server
 for thing in things_to_keep:
