@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+      - stable
+      - release
+    tags:
+      - v*
 
 jobs:
   publish:
