@@ -13,6 +13,19 @@ The easiest way to run the frost mirror importer is to use the contained `docker
 docker-compose up
 ```
 
+These are the build arguments we use to configure the frost server build:
+- `serviceRootUrl`
+- `http_cors_enable`
+- `http_cors_allowed.origins`
+- `persistence_db_driver`
+- `persistence_db_url`
+- `persistence_db_username`
+- `persistence_db_password`
+- `persistence_autoUpdateDatabase`
+- `persistence_idGenerationMode`
+
+For more information see: [Frost Server Settings](https://fraunhoferiosb.github.io/FROST-Server/settings/settings.html)
+
 ## API and CLI
 
 Frost server running under:
