@@ -1,4 +1,4 @@
-FROM fraunhoferiosb/frost-server-http:latest
+FROM fraunhoferiosb/frost-server-http:1.14.4
 
 # Env for database
 ENV POSTGRES_USER=postgres
